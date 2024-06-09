@@ -6,11 +6,25 @@ const cors = require('cors');
 const app = express();
 const port = 3000;
 
-const secretKey = 'your-secret-key';
+const secretKey = 'your-secret-key'; // Certifique-se de usar a mesma chave secreta para assinar e verificar tokens
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Middleware para verificar token JWT
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
 
 const professionals = [
   {
@@ -124,12 +138,51 @@ app.post('/login', (req, res) => {
   });
 });
 
-app.get('/patients', (req, res) => {
+app.get('/patients', authenticateToken, (req, res) => {
   res.json(patients);
 });
-app.get('/professionals', (req, res) => {
+
+app.get('/patients/:id', authenticateToken, (req, res) => {
+  const patient = patients.find(p => p.id === req.params.id);
+  if (!patient) {
+    return res.status(404).json({ message: 'Patient not found' });
+  }
+  res.json(patient);
+});
+
+app.get('/professionals', authenticateToken, (req, res) => {
   res.json(professionals);
 });
+
+app.get('/professionals/:id', authenticateToken, (req, res) => {
+  const professional = professionals.find(pro => pro.id === req.params.id);
+  if (!professional) {
+    return res.status(404).json({ message: 'Professional not found' });
+  }
+  res.json(professional);
+});
+
+// Endpoint to get patients for the logged-in professional
+app.get('/patients', authenticateToken, (req, res) => {
+  // Retrieve patients from database where professionalId matches req.professionalId
+  const patients = getPatientsForProfessional(req.professionalId);
+  res.json(patients);
+});
+
+// Endpoint to get requests for the logged-in professional
+app.get('/requests', authenticateToken, (req, res) => {
+  // Retrieve requests from database where professionalId is null
+  const requests = getRequests();
+  res.json(requests);
+});
+
+const getPatientsForProfessional = (professionalId) => {
+  return patients.filter(patient => patient.professionalId === professionalId)
+};
+
+const getRequests = (professionalId) => {
+  return patients.filter(patient => patient.professionalId != professionalId)
+};
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
