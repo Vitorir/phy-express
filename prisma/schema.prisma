@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Cliente {
+  id                String            @id @default(uuid())
+  nome              String
+  email             String            @unique
+  password          String
+  birthdate         DateTime
+  gender            String
+  role              String
+  objectives        String
+  observations      String
+  injuries          String
+  diabetes_indicator Boolean
+  smoking_indicator Boolean
+  joint_problem_indicator Boolean
+  loss_of_consciousness_indicator Boolean
+  chest_pain_indicator Boolean
+  profissionalId    String?
+  profissional      Profissional?     @relation("ClienteProfissional", fields: [profissionalId], references: [id])
+  contratos         Contrato[]
+  treinos           FichaTreino[]
+  fichasPerimetria  FichaPerimetria[]
+}
+
+model Profissional {
+  id            String            @id @default(uuid())
+  nome          String
+  email         String            @unique
+  password      String
+  especialidade String
+  pacientes     Cliente[]         @relation("ClienteProfissional")
+  contratos     Contrato[]
+  treinos       FichaTreino[]
+}
+
+model Contrato {
+  id             String     @id @default(uuid())
+  idCliente      String
+  idProfissional String
+  data_inicio    DateTime
+  status         String
+
+  cliente        Cliente     @relation(fields: [idCliente], references: [id])
+  profissional   Profissional @relation(fields: [idProfissional], references: [id])
+}
+
+model FichaTreino {
+  id             String       @id @default(uuid())
+  nome           String
+  objetivo       String
+  observacoes    String
+  restricoes     String
+  dataCriacao    DateTime
+  idCliente      String
+  idProfissional String
+
+  cliente        Cliente       @relation(fields: [idCliente], references: [id])
+  profissional   Profissional  @relation(fields: [idProfissional], references: [id])
+  exercicios     Exercicio[]
+}
+
+model Exercicio {
+  id          String       @id @default(uuid())
+  ordem       Int
+  nome        String
+  series      Int
+  repeticoes  Int
+  carga       Float
+  observacoes String
+  idFichaTreino String
+
+  fichaTreino FichaTreino @relation(fields: [idFichaTreino], references: [id])
+}
+
+model FichaPerimetria {
+  id             String  @id @default(uuid())
+  chest          Float
+  rightArm       Float
+  leftArm        Float
+  rightForearm   Float
+  leftForearm    Float
+  abdomen        Float
+  waist          Float
+  hips           Float
+  rightThigh     Float
+  leftThigh      Float
+  rightCalf      Float
+  leftCalf       Float
+  weight         Float
+  idCliente      String
+
+  cliente        Cliente @relation(fields: [idCliente], references: [id])
+}
